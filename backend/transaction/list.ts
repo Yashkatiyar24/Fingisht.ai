@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import { Query } from "encore.dev/api";
 import db from "../db";
 
@@ -34,8 +35,11 @@ interface ListResponse {
 
 // Lists transactions with optional filters
 export const list = api<ListParams, ListResponse>(
-  { expose: true, method: "GET", path: "/transactions" },
+  { auth: true, expose: true, method: "GET", path: "/transactions" },
   async ({ limit, offset, categoryId, startDate, endDate, search }) => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
     

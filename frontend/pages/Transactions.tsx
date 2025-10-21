@@ -1,11 +1,11 @@
 import * as React from "react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import backend from "~backend/client";
 import type { transaction } from "~backend/transaction";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
   TableBody, 
@@ -14,13 +14,15 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, ChevronLeft, ChevronRight, Sparkles, Check } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useToast } from "@/components/ui/use-toast";
+import { useBackend } from "@/lib/backend";
 
 type Transaction = Awaited<ReturnType<typeof transaction.list>>["transactions"][0];
 
 export function Transactions() {
+  const backend = useBackend();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
@@ -34,6 +36,26 @@ export function Transactions() {
         limit: pageSize,
         offset: page * pageSize,
         search: search || undefined,
+      });
+    },
+  });
+
+  const applySuggestionMutation = useMutation({
+    mutationFn: ({ transactionId, createRule }: { transactionId: string; createRule?: boolean }) =>
+      backend.ai.applySuggestion({ transactionId, createRule }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast({
+        title: "Category applied",
+        description: "AI suggestion has been accepted",
+      });
+    },
+    onError: (error) => {
+      console.error('Apply suggestion error:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to apply suggestion",
+        description: error.message,
       });
     },
   });
@@ -97,6 +119,7 @@ export function Transactions() {
                       <TableHead>Date</TableHead>
                       <TableHead>Merchant</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead>AI Suggestion</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
@@ -125,6 +148,35 @@ export function Transactions() {
                             </span>
                           ) : (
                             <span className="text-muted-foreground text-sm">Uncategorized</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(transaction as any).aiCategory && !(transaction as any).isManualCategory ? (
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant="outline" 
+                                className="bg-cyan-500/10 border-cyan-500/30 text-cyan-400 flex items-center gap-1"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                {(transaction as any).aiCategory}
+                                <span className="text-xs opacity-70">
+                                  {((transaction as any).aiConfidence * 100).toFixed(0)}%
+                                </span>
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs hover:bg-cyan-500/10"
+                                onClick={() => applySuggestionMutation.mutate({ 
+                                  transactionId: transaction.id.toString(), 
+                                  createRule: false 
+                                })}
+                              >
+                                <Check className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">

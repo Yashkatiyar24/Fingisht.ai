@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import backend from "~backend/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Receipt, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Receipt, Target, Sparkles, AlertTriangle } from "lucide-react";
+import { useBackend } from "@/lib/backend";
 import { 
   PieChart, 
   Pie, 
@@ -19,10 +19,26 @@ import {
 import { formatCurrency } from "@/lib/format";
 
 export function Dashboard() {
+  const backend = useBackend();
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       return await backend.dashboard.getStats({});
+    },
+  });
+
+  const { data: insights } = useQuery({
+    queryKey: ["ai-insights"],
+    queryFn: async () => {
+      return await backend.ai.getInsights({});
+    },
+  });
+
+  const { data: anomalies } = useQuery({
+    queryKey: ["anomalies"],
+    queryFn: async () => {
+      return await backend.ai.getAnomalies({});
     },
   });
 
@@ -171,6 +187,71 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Insights */}
+      {insights && insights.bullets.length > 0 && (
+        <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl border-cyan-500/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+              <CardTitle>Smart Insights</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {insights.bullets.map((bullet, idx) => (
+                <div 
+                  key={idx}
+                  className={`
+                    flex items-start gap-3 p-3 rounded-xl transition-all
+                    ${bullet.type === 'warning' ? 'bg-yellow-500/10 border border-yellow-500/20' : 
+                      bullet.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 
+                      'bg-cyan-500/10 border border-cyan-500/20'}
+                  `}
+                >
+                  {bullet.type === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />}
+                  {bullet.type === 'success' && <TrendingDown className="w-4 h-4 text-green-400 mt-0.5" />}
+                  {bullet.type === 'info' && <Sparkles className="w-4 h-4 text-cyan-400 mt-0.5" />}
+                  <p className="text-sm flex-1">{bullet.text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground pt-2 border-t border-border/40">
+              {insights.summary}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Anomalies */}
+      {anomalies && anomalies.anomalies.filter(a => !a.acknowledged).length > 0 && (
+        <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl border-yellow-500/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              <CardTitle>Unusual Spending Detected</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {anomalies.anomalies.filter(a => !a.acknowledged).slice(0, 3).map((anomaly) => (
+                <div 
+                  key={anomaly.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20"
+                >
+                  <div>
+                    <p className="font-medium">{new Date(anomaly.date).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {anomaly.severity.toUpperCase()} severity anomaly (z-score: {anomaly.zScore.toFixed(2)})
+                    </p>
+                  </div>
+                  <span className="font-bold text-yellow-400">{formatCurrency(anomaly.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Top Merchants */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">

@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import db from "../db";
 
 interface CreateParams {
@@ -19,8 +20,11 @@ interface Category {
 
 // Creates a new category
 export const create = api<CreateParams, Category>(
-  { expose: true, method: "POST", path: "/categories" },
+  { auth: true, expose: true, method: "POST", path: "/categories" },
   async (params) => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     const result = await db.queryRow<Category>`
       INSERT INTO categories (name, color, icon, parent_id, is_system)
       VALUES (

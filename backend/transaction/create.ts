@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import db from "../db";
 
 interface CreateParams {
@@ -30,8 +31,11 @@ interface Transaction {
 
 // Creates a new transaction
 export const create = api<CreateParams, Transaction>(
-  { expose: true, method: "POST", path: "/transactions" },
+  { auth: true, expose: true, method: "POST", path: "/transactions" },
   async (params) => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     const result = await db.queryRow<Transaction>`
       INSERT INTO transactions (
         date, amount, merchant, description, category_id, currency,

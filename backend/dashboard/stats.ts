@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import { Query } from "encore.dev/api";
 import db from "../db";
 
@@ -37,8 +38,11 @@ interface StatsResponse {
 
 // Returns dashboard statistics
 export const getStats = api<StatsParams, StatsResponse>(
-  { expose: true, method: "GET", path: "/dashboard/stats" },
+  { auth: true, expose: true, method: "GET", path: "/dashboard/stats" },
   async ({ startDate, endDate }) => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     const startStr = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const endStr = endDate || new Date().toISOString();
 

@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import db from "../db";
 
 interface CreateParams {
@@ -20,8 +21,11 @@ interface Budget {
 
 // Creates a new budget
 export const create = api<CreateParams, Budget>(
-  { expose: true, method: "POST", path: "/budgets" },
+  { auth: true, expose: true, method: "POST", path: "/budgets" },
   async (params) => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     const result = await db.queryRow<Budget>`
       INSERT INTO budgets (category_id, amount, period_start, period_end, alert_threshold)
       VALUES (

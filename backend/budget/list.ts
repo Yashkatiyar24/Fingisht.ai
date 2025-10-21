@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import db from "../db";
 
 interface Budget {
@@ -20,8 +21,11 @@ interface ListResponse {
 
 // Lists all budgets with current spending
 export const list = api<{}, ListResponse>(
-  { expose: true, method: "GET", path: "/budgets" },
+  { auth: true, expose: true, method: "GET", path: "/budgets" },
   async () => {
+    const authData = getAuthData()!;
+    const orgId = authData.organizationID;
+    if (!orgId) throw new Error("Organization ID required");
     const budgets = await db.queryAll<Budget>`
       SELECT 
         b.id, b.category_id as "categoryId",
