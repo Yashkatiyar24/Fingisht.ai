@@ -104,10 +104,17 @@ export const detectAnomalies = api<{}, DetectAnomaliesResponse>(
   }
 );
 
+export const detectAnomaliesCron = api(
+  { auth: false, expose: false, method: "POST", path: "/ai/detect-anomalies-cron" },
+  async () => {
+    return await detectAnomalies({});
+  }
+);
+
 const _ = new CronJob("anomaly-detection", {
   title: "Detect spending anomalies",
   schedule: "0 2 * * *",
-  endpoint: async () => detectAnomalies({}),
+  endpoint: detectAnomaliesCron,
 });
 
 interface GetAnomaliesResponse {

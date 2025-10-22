@@ -33,6 +33,8 @@ const BROWSER = typeof globalThis === "object" && ("window" in globalThis);
  * Client is an API client for the  Encore application.
  */
 export class Client {
+    public readonly ai: ai.ServiceClient
+    public readonly auth: auth.ServiceClient
     public readonly budget: budget.ServiceClient
     public readonly category: category.ServiceClient
     public readonly dashboard: dashboard.ServiceClient
@@ -52,6 +54,8 @@ export class Client {
         this.target = target
         this.options = options ?? {}
         const base = new BaseClient(this.target, this.options)
+        this.ai = new ai.ServiceClient(base)
+        this.auth = new auth.ServiceClient(base)
         this.budget = new budget.ServiceClient(base)
         this.category = new category.ServiceClient(base)
         this.dashboard = new dashboard.ServiceClient(base)
@@ -73,6 +77,11 @@ export class Client {
 }
 
 /**
+ * Import the auth handler to be able to derive the auth type
+ */
+import type { auth as auth_auth } from "~backend/auth/auth";
+
+/**
  * ClientOptions allows you to override any default behaviour within the generated Encore client.
  */
 export interface ClientOptions {
@@ -85,6 +94,130 @@ export interface ClientOptions {
 
     /** Default RequestInit to be used for the client */
     requestInit?: Omit<RequestInit, "headers"> & { headers?: Record<string, string> }
+
+    /**
+     * Allows you to set the authentication data to be used for each
+     * request either by passing in a static object or by passing in
+     * a function which returns a new object for each request.
+     */
+    auth?: RequestType<typeof auth_auth> | AuthDataGenerator
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import { applySuggestion as api_ai_apply_suggestion_applySuggestion } from "~backend/ai/apply_suggestion";
+import { categorizeBatch as api_ai_categorize_batch_categorizeBatch } from "~backend/ai/categorize_batch";
+import {
+    acknowledgeAnomaly as api_ai_detect_anomalies_acknowledgeAnomaly,
+    getAnomalies as api_ai_detect_anomalies_getAnomalies
+} from "~backend/ai/detect_anomalies";
+import {
+    getSettings as api_ai_get_settings_getSettings,
+    updateSettings as api_ai_get_settings_updateSettings
+} from "~backend/ai/get_settings";
+import { getInsights as api_ai_insights_getInsights } from "~backend/ai/insights";
+
+export namespace ai {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.acknowledgeAnomaly = this.acknowledgeAnomaly.bind(this)
+            this.applySuggestion = this.applySuggestion.bind(this)
+            this.categorizeBatch = this.categorizeBatch.bind(this)
+            this.getAnomalies = this.getAnomalies.bind(this)
+            this.getInsights = this.getInsights.bind(this)
+            this.getSettings = this.getSettings.bind(this)
+            this.updateSettings = this.updateSettings.bind(this)
+        }
+
+        public async acknowledgeAnomaly(params: { anomalyId: string }): Promise<ResponseType<typeof api_ai_detect_anomalies_acknowledgeAnomaly>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/anomalies/${encodeURIComponent(params.anomalyId)}/acknowledge`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_detect_anomalies_acknowledgeAnomaly>
+        }
+
+        public async applySuggestion(params: RequestType<typeof api_ai_apply_suggestion_applySuggestion>): Promise<ResponseType<typeof api_ai_apply_suggestion_applySuggestion>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                createRule: params.createRule,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/apply-suggestion/${encodeURIComponent(params.transactionId)}`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_apply_suggestion_applySuggestion>
+        }
+
+        public async categorizeBatch(params: RequestType<typeof api_ai_categorize_batch_categorizeBatch>): Promise<ResponseType<typeof api_ai_categorize_batch_categorizeBatch>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/categorize-batch`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_categorize_batch_categorizeBatch>
+        }
+
+        public async getAnomalies(): Promise<ResponseType<typeof api_ai_detect_anomalies_getAnomalies>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/anomalies`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_detect_anomalies_getAnomalies>
+        }
+
+        public async getInsights(params: RequestType<typeof api_ai_insights_getInsights>): Promise<ResponseType<typeof api_ai_insights_getInsights>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                periodEnd:   params.periodEnd,
+                periodStart: params.periodStart,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/insights`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_insights_getInsights>
+        }
+
+        public async getSettings(): Promise<ResponseType<typeof api_ai_get_settings_getSettings>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/settings`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_get_settings_getSettings>
+        }
+
+        public async updateSettings(params: RequestType<typeof api_ai_get_settings_updateSettings>): Promise<ResponseType<typeof api_ai_get_settings_updateSettings>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai/settings`, {method: "PUT", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_get_settings_updateSettings>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import { clerkWebhook as api_auth_clerk_webhook_clerkWebhook } from "~backend/auth/clerk_webhook";
+import { getUserInfo as api_auth_user_getUserInfo } from "~backend/auth/user";
+
+export namespace auth {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.clerkWebhook = this.clerkWebhook.bind(this)
+            this.getUserInfo = this.getUserInfo.bind(this)
+        }
+
+        public async clerkWebhook(params: RequestType<typeof api_auth_clerk_webhook_clerkWebhook>): Promise<ResponseType<typeof api_auth_clerk_webhook_clerkWebhook>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/webhooks/clerk`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_clerk_webhook_clerkWebhook>
+        }
+
+        public async getUserInfo(): Promise<ResponseType<typeof api_auth_user_getUserInfo>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/user/me`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_user_getUserInfo>
+        }
+    }
 }
 
 /**
@@ -591,6 +724,11 @@ type CallParameters = Omit<RequestInit, "headers"> & {
     query?: Record<string, string | string[]>
 }
 
+// AuthDataGenerator is a function that returns a new instance of the authentication data required by this API
+export type AuthDataGenerator = () =>
+  | RequestType<typeof auth_auth>
+  | Promise<RequestType<typeof auth_auth> | undefined>
+  | undefined;
 
 // A fetcher is the prototype for the inbuilt Fetch function
 export type Fetcher = typeof fetch;
@@ -602,6 +740,7 @@ class BaseClient {
     readonly fetcher: Fetcher
     readonly headers: Record<string, string>
     readonly requestInit: Omit<RequestInit, "headers"> & { headers?: Record<string, string> }
+    readonly authGenerator?: AuthDataGenerator
 
     constructor(baseURL: string, options: ClientOptions) {
         this.baseURL = baseURL
@@ -621,9 +760,41 @@ class BaseClient {
         } else {
             this.fetcher = boundFetch
         }
+
+        // Setup an authentication data generator using the auth data token option
+        if (options.auth !== undefined) {
+            const auth = options.auth
+            if (typeof auth === "function") {
+                this.authGenerator = auth
+            } else {
+                this.authGenerator = () => auth
+            }
+        }
     }
 
     async getAuthData(): Promise<CallParameters | undefined> {
+        let authData: RequestType<typeof auth_auth> | undefined;
+
+        // If authorization data generator is present, call it and add the returned data to the request
+        if (this.authGenerator) {
+            const mayBePromise = this.authGenerator();
+            if (mayBePromise instanceof Promise) {
+                authData = await mayBePromise;
+            } else {
+                authData = mayBePromise;
+            }
+        }
+
+        if (authData) {
+            const data: CallParameters = {};
+
+            data.headers = makeRecord<string, string>({
+                authorization: authData.authorization,
+            });
+
+            return data;
+        }
+
         return undefined;
     }
 
