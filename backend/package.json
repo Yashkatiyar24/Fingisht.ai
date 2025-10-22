@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^^1.27.0",
+    "@supabase/supabase-js": "^^2.49.4",
     "encore.dev": "^1.50.6"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { NavLink } from "react-router-dom";
+import { UserButton, useUser } from "@clerk/clerk-react";
 import { 
   LayoutDashboard, 
   Upload, 
@@ -19,9 +20,11 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const { user } = useUser();
+  
   return (
-    <aside className="w-64 min-h-screen border-r border-border/40 bg-card/30 backdrop-blur-sm">
-      <div className="p-6">
+    <aside className="w-64 min-h-screen border-r border-border/40 bg-card/30 backdrop-blur-sm flex flex-col">
+      <div className="p-6 flex-1">
         <div className="flex items-center gap-2 mb-8">
           <TrendingUp className="w-8 h-8 text-cyan-400" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
@@ -53,6 +56,28 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+      </div>
+      
+      <div className="p-6 border-t border-border/40">
+        <div className="flex items-center gap-3">
+          <UserButton 
+            appearance={{
+              elements: {
+                avatarBox: "w-10 h-10",
+              },
+            }}
+          />
+          {user && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user.fullName || user.primaryEmailAddress?.emailAddress}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user.primaryEmailAddress?.emailAddress}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
