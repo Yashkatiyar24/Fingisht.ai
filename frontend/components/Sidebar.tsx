@@ -25,7 +25,7 @@ export function Sidebar() {
         <div className="flex items-center gap-2 mb-8">
           <TrendingUp className="w-8 h-8 text-cyan-400" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-            ExpenseFlow
+            FINSIGHT.AI
           </h1>
         </div>
         
