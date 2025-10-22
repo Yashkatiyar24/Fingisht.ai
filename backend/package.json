@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "bun",
+  "scripts": {
+    "build": "cd ../frontend && bun install && vite build --outDir=../backend/frontend/dist"
+  },
+  "dependencies": {
+    "@clerk/backend": "^1.27.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "encore.dev": "^1.50.6",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "@types/pg": "^8.15.5",
+    "typescript": "^5.8.3"
+  }
+}
