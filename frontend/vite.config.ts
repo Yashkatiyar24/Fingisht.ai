@@ -11,7 +11,8 @@ export default defineConfig({
     hmr: {
       clientPort: 443,
       protocol: 'wss'
-    }
+    },
+    allowedHosts: ['.replit.dev', '.repl.co']
   },
   resolve: {
     alias: {
