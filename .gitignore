@@ -5,3 +5,7 @@ encore.gen.cue
 node_modules
 /encore.gen
 .env
+dist
+.vite
+*.log
+.DS_Store
