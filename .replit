@@ -36,3 +36,8 @@ externalPort = 80
 [[ports]]
 localPort = 42455
 externalPort = 3000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "cd frontend && bun run dev"]
+build = ["bun", "install"]
