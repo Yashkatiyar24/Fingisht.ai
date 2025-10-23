@@ -1,7 +1,7 @@
-# Expense Dashboard - Replit Setup
+# FINSIGHT.AI - Replit Setup
 
 ## Project Overview
-This is a smart expense tracking dashboard built with:
+This is FINSIGHT.AI — a smart expense tracking dashboard built with:
 - **Frontend**: React + Vite + Tailwind CSS
 - **Backend**: Encore.ts framework (TypeScript microservices)
 - **Authentication**: Clerk (frontend) + Supabase (backend sync)

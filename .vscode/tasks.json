@@ -1,0 +1,26 @@
+{
+  // VS Code task to install deps and start the frontend dev server with one action.
+  // It will run automatically on folder open if "runOn": "folderOpen" is kept.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Frontend: install & dev (bun)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd frontend && (command -v bun >/dev/null 2>&1 && bun install || npm install) && PORT=5173 $(command -v bun >/dev/null 2>&1 && echo 'bun run dev' || echo 'npm run dev')"
+      ],
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}
