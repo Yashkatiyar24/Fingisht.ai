@@ -72,7 +72,13 @@ To run both frontend and backend locally, you need:
 - `VITE_SUPABASE_ANON_KEY` - Frontend Supabase public key
 
 ### Frontend (.env created)
-The frontend `.env` file has been created with references to the Replit secrets.
+The frontend `.env` file has been created with actual values from Replit secrets:
+- `VITE_CLERK_PUBLISHABLE_KEY` - Clerk public key for authentication UI
+- `VITE_SUPABASE_URL` - Supabase project URL for client-side access
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key for public access
+- `VITE_CLIENT_TARGET` - Backend API URL (currently set to `http://localhost:4000`)
+
+**To connect to a deployed backend:** Update `VITE_CLIENT_TARGET` in `frontend/.env` to your Encore Cloud backend URL (e.g., `https://staging-smart-expense-dashboard-i542.encr.app`)
 
 ## Database Setup
 
@@ -94,7 +100,8 @@ These migrations run automatically when deploying to Encore Cloud.
    - Copy the deployed backend URL
 
 2. **Update Frontend Configuration**:
-   - Update `frontend/lib/backend.ts` or create a config for the deployed backend URL
+   - Open `frontend/.env` and update `VITE_CLIENT_TARGET` to your deployed backend URL
+   - Restart the frontend workflow to apply changes
    - Test the frontend connects to the deployed backend
 
 3. **Configure Clerk Webhook**:
