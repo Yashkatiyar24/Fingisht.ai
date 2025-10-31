@@ -1,0 +1,22 @@
+.encore
+encore.gen.go
+encore.gen.cue
+/.encore
+node_modules
+/encore.gen
+.env
+dist
+.vite
+*.log
+.DS_Store
+
+# Local agent/editor/runtime state
+.local/
+.config/
+
+# Encore CLI local DB and telemetry
+.config/encore/
+.config/encore/*
+
+# Replit agent state
+.local/state/
