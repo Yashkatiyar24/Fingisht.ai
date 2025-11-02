@@ -5,6 +5,10 @@ import { verify } from 'https://deno.land/x/djwt@v2.7/mod.ts'
 
 const CLERK_PEM_PUBLIC_KEY = Deno.env.get('CLERK_PEM_PUBLIC_KEY');
 
+const formatClerkKey = (key: string) => {
+  return `-----BEGIN PUBLIC KEY-----\\n${key}\\n-----END PUBLIC KEY-----`;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -20,7 +24,8 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.split(' ')[1]
-    const payload = await verify(jwt, CLERK_PEM_PUBLIC_KEY, 'RS256')
+    const formattedKey = formatClerkKey(CLERK_PEM_PUBLIC_KEY);
+    const payload = await verify(jwt, formattedKey, 'RS256')
     const userId = payload.sub
 
     const supabase = createClient(
