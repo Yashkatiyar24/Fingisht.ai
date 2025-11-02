@@ -5,7 +5,8 @@ import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Toaster } from "@/components/ui/toaster";
 import { ClerkProfileSync } from "@/components/ClerkProfileSync";
 import { Dashboard } from "./pages/Dashboard";
-import UploadCsv from "./pages/UploadCsv";
+import Upload from "./pages/Upload";
+import { MapColumns } from "./pages/MapColumns";
 import { Transactions } from "./pages/Transactions";
 import { Categories } from "./pages/Categories";
 import { Budgets } from "./pages/Budgets";
@@ -38,7 +39,8 @@ function AppInner() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/upload" element={<UploadCsv />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/map-columns" element={<MapColumns />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/budgets" element={<Budgets />} />

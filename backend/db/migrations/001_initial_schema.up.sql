@@ -1,87 +1,71 @@
--- Users table (for future multi-user support)
-CREATE TABLE users (
-  id BIGSERIAL PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+-- Profiles table to store user-specific information
+CREATE TABLE profiles (
+  id uuid PRIMARY KEY,
+  email text,
+  name text,
+  avatar_url text,
+  created_at timestamptz default now()
 );
 
--- Categories table
+-- Categories table for users to classify their transactions
 CREATE TABLE categories (
-  id BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  color TEXT NOT NULL DEFAULT '#6EE7F9',
-  icon TEXT,
-  parent_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
-  is_system BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  id uuid PRIMARY KEY default gen_random_uuid(),
+  user_id uuid not null,
+  name text not null,
+  color text,
+  icon text,
+  created_at timestamptz default now(),
+  constraint fk_user foreign key (user_id) references profiles(id) on delete cascade
 );
 
--- Category rules for auto-categorization
-CREATE TABLE category_rules (
-  id BIGSERIAL PRIMARY KEY,
-  pattern TEXT NOT NULL,
-  category_id BIGINT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-  priority INTEGER NOT NULL DEFAULT 0,
-  confidence DOUBLE PRECISION NOT NULL DEFAULT 1.0,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+-- Import batches to track file uploads
+CREATE TABLE import_batches (
+  id uuid PRIMARY KEY default gen_random_uuid(),
+  user_id uuid not null,
+  filename text,
+  checksum text,
+  row_count int,
+  created_at timestamptz default now(),
+  constraint fk_user foreign key (user_id) references profiles(id) on delete cascade
 );
 
--- Transactions table
+-- Transactions table to store all financial transactions
 CREATE TABLE transactions (
-  id BIGSERIAL PRIMARY KEY,
-  date TIMESTAMP WITH TIME ZONE NOT NULL,
-  amount DOUBLE PRECISION NOT NULL,
-  merchant TEXT NOT NULL,
-  description TEXT,
-  category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
-  currency TEXT NOT NULL DEFAULT 'INR',
-  payment_method TEXT,
-  tags TEXT[],
-  notes TEXT,
-  is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
-  upload_id BIGINT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  id uuid PRIMARY KEY default gen_random_uuid(),
+  user_id uuid not null,
+  occurred_at date not null,
+  merchant text,
+  description text,
+  amount numeric(14,2) not null,
+  type text check (type in ('debit','credit')) not null,
+  category_id uuid null references categories(id) on delete set null,
+  raw_category text null,
+  import_batch_id uuid null references import_batches(id) on delete set null,
+  row_hash text unique,
+  created_at timestamptz default now(),
+  constraint fk_user foreign key (user_id) references profiles(id) on delete cascade
 );
 
--- Budgets table
-CREATE TABLE budgets (
-  id BIGSERIAL PRIMARY KEY,
-  category_id BIGINT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-  amount DOUBLE PRECISION NOT NULL,
-  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  period_end TIMESTAMP WITH TIME ZONE NOT NULL,
-  alert_threshold DOUBLE PRECISION NOT NULL DEFAULT 0.8,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
+-- Indexes to improve query performance
+CREATE INDEX ON transactions(user_id, occurred_at desc);
+CREATE UNIQUE INDEX ON transactions(row_hash);
+CREATE INDEX ON transactions(user_id, category_id);
 
--- Uploads tracking
-CREATE TABLE uploads (
-  id BIGSERIAL PRIMARY KEY,
-  filename TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  processed_at TIMESTAMP WITH TIME ZONE,
-  total_rows INTEGER,
-  errors JSONB,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
+-- Enable Row Level Security (RLS) for all relevant tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE import_batches ENABLE ROW LEVEL SECURITY;
 
--- Insert default categories
-INSERT INTO categories (name, color, icon, is_system) VALUES
-  ('Food & Dining', '#10B981', 'utensils', true),
-  ('Transportation', '#6EE7F9', 'car', true),
-  ('Shopping', '#C084FC', 'shopping-bag', true),
-  ('Entertainment', '#F59E0B', 'film', true),
-  ('Bills & Utilities', '#EF4444', 'receipt', true),
-  ('Healthcare', '#EC4899', 'heart-pulse', true),
-  ('Education', '#3B82F6', 'graduation-cap', true),
-  ('Travel', '#8B5CF6', 'plane', true),
-  ('Groceries', '#22C55E', 'shopping-cart', true),
-  ('Other', '#6B7280', 'more-horizontal', true);
+-- RLS Policies to ensure users can only access their own data
+CREATE POLICY "profiles self" ON profiles
+FOR ALL USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
--- Create indexes
-CREATE INDEX idx_transactions_date ON transactions(date);
-CREATE INDEX idx_transactions_category ON transactions(category_id);
-CREATE INDEX idx_transactions_merchant ON transactions(merchant);
-CREATE INDEX idx_category_rules_pattern ON category_rules(pattern);
+CREATE POLICY "categories by owner" on categories
+FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "transactions by owner" on transactions
+FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "batches by owner" on import_batches
+FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
