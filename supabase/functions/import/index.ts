@@ -7,6 +7,12 @@ import { createHash } from "https://deno.land/std@0.119.0/hash/mod.ts";
 // This is the Public Key from your Clerk JWT verification settings
 const CLERK_PEM_PUBLIC_KEY = Deno.env.get('CLERK_PEM_PUBLIC_KEY');
 
+// The djwt library expects the key to be in a specific format,
+// so we need to wrap it with the standard PEM headers and footers.
+const formatClerkKey = (key: string) => {
+  return `-----BEGIN PUBLIC KEY-----\\n${key}\\n-----END PUBLIC KEY-----`;
+};
+
 // Function to safely parse and format dates
 // Supports DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
 const parseDate = (dateString: string): string => {
@@ -49,8 +55,9 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.split(' ')[1]
-    // Verify the JWT with Clerk's public key
-    const payload = await verify(jwt, CLERK_PEM_PUBLIC_KEY, 'RS256')
+    // Verify the JWT with the formatted Clerk public key
+    const formattedKey = formatClerkKey(CLERK_PEM_PUBLIC_KEY);
+    const payload = await verify(jwt, formattedKey, 'RS256')
     if (!payload.sub) {
       throw new Error('Invalid JWT payload: missing sub');
     }
