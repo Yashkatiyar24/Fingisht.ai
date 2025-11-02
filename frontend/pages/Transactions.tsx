@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Edit } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
 
 export function Transactions() {
   const [search, setSearch] = useState("");
@@ -85,18 +86,35 @@ export function Transactions() {
                       <TableHead>Date</TableHead>
                       <TableHead>Merchant</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactions.map((transaction) => (
-                      <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors">
+                      <TableRow
+                        key={transaction.id}
+                        className={`transition-colors ${batchId && transaction.import_batch_id === batchId ? 'bg-cyan-500/10' : 'hover:bg-muted/30'}`}
+                      >
                         <TableCell className="font-medium">{formatDate(transaction.occurred_at)}</TableCell>
                         <TableCell>{transaction.merchant}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{transaction.description || '—'}</TableCell>
+                        <TableCell>
+                          {transaction.raw_category ? (
+                            <Badge variant="outline">{transaction.raw_category}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Uncategorized</span>
+                          )}
+                        </TableCell>
                         <TableCell className="capitalize">{transaction.type}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(transaction.amount)}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
