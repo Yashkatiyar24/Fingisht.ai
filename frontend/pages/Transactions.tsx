@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,49 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Loader2, Edit } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EditTransactionModal } from "@/components/EditTransactionModal";
 
 export function Transactions() {
   const [search, setSearch] = useState("");
-  const [editingTransaction, setEditingTransaction] = useState(null);
-  const [merchant, setMerchant] = useState("");
-  const [category, setCategory] = useState("");
   const [searchParams] = useSearchParams();
   const batchId = searchParams.get("batchId");
   const { getToken } = useAuth();
-  const queryClient = useQueryClient();
-
-  const { mutate: updateTransaction } = useMutation({
-    mutationFn: async ({ transactionId, categoryId }) => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/update-transaction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ transactionId, categoryId }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update transaction');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['transactions']);
-      setEditingTransaction(null);
-    },
-  });
-
-  const handleSaveTransaction = (categoryId) => {
-    if (editingTransaction) {
-      updateTransaction({
-        transactionId: editingTransaction.id,
-        categoryId,
-      });
-    }
-  };
 
   const fetchTransactions = async ({ pageParam = 0 }) => {
     const token = await getToken({ template: 'supabase' });
@@ -60,8 +23,6 @@ export function Transactions() {
     url.searchParams.set('cursor', pageParam.toString());
     url.searchParams.set('limit', '20');
     if (search) url.searchParams.set('q', search);
-    if (merchant) url.searchParams.set('merchant', merchant);
-    if (category) url.searchParams.set('category', category);
     if (batchId) url.searchParams.set('batchId', batchId);
 
     const response = await fetch(url.toString(), {
@@ -82,25 +43,9 @@ export function Transactions() {
     isLoading,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["transactions", search, merchant, category, batchId],
+    queryKey: ["transactions", search, batchId],
     queryFn: fetchTransactions,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/categories`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-      return response.json();
-    }
   });
 
   const transactions = data?.pages.flatMap((page) => page.transactions) || [];
@@ -125,25 +70,6 @@ export function Transactions() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 rounded-xl bg-background/50"
             />
-          </div>
-          <div className="flex gap-4 mt-4">
-            <Input
-              placeholder="Filter by merchant..."
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              className="rounded-xl bg-background/50"
-            />
-            <Select onValueChange={setCategory} value={category}>
-              <SelectTrigger className="rounded-xl bg-background/50">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
-                {categories?.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -185,7 +111,7 @@ export function Transactions() {
                         <TableCell className="capitalize">{transaction.type}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(transaction.amount)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTransaction(transaction)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -206,14 +132,6 @@ export function Transactions() {
           )}
         </CardContent>
       </Card>
-
-      <EditTransactionModal
-        isOpen={!!editingTransaction}
-        onClose={() => setEditingTransaction(null)}
-        transaction={editingTransaction}
-        categories={categories}
-        onSave={handleSaveTransaction}
-      />
     </div>
   );
 }

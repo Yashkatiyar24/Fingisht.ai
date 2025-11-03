@@ -50,12 +50,6 @@ serve(async (req) => {
     if (params.has('batchId')) {
       query = query.eq('import_batch_id', params.get('batchId'))
     }
-    if (params.has('category')) {
-      query = query.eq('category_id', params.get('category'))
-    }
-    if (params.has('merchant')) {
-      query = query.ilike('merchant', `%${params.get('merchant')}%`)
-    }
 
     const limit = parseInt(params.get('limit') || '20')
     const cursor = parseInt(params.get('cursor') || '0')

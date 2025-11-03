@@ -145,13 +145,6 @@ serve(async (req) => {
 
     if (insertError) throw insertError
 
-    // Asynchronously trigger the categorization function, but don't block the response
-    fetch(new URL('/categorize', req.url).href, {
-      method: 'POST',
-      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Authorization': req.headers.get('Authorization')! },
-      body: JSON.stringify({ batchId: batch.id }),
-    }).catch(console.error);
-
     return new Response(JSON.stringify({
       insertedCount: insertedCount || 0,
       skippedCount: rows.length - (insertedCount || 0),
