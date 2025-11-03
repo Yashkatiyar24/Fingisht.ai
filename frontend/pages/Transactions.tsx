@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Loader2, Edit } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function Transactions() {
   const [search, setSearch] = useState("");
+  const [merchant, setMerchant] = useState("");
+  const [category, setCategory] = useState("");
   const [searchParams] = useSearchParams();
   const batchId = searchParams.get("batchId");
   const { getToken } = useAuth();
@@ -23,6 +26,8 @@ export function Transactions() {
     url.searchParams.set('cursor', pageParam.toString());
     url.searchParams.set('limit', '20');
     if (search) url.searchParams.set('q', search);
+    if (merchant) url.searchParams.set('merchant', merchant);
+    if (category) url.searchParams.set('category', category);
     if (batchId) url.searchParams.set('batchId', batchId);
 
     const response = await fetch(url.toString(), {
@@ -43,9 +48,25 @@ export function Transactions() {
     isLoading,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["transactions", search, batchId],
+    queryKey: ["transactions", search, merchant, category, batchId],
     queryFn: fetchTransactions,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const token = await getToken({ template: 'supabase' });
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/categories`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      return response.json();
+    }
   });
 
   const transactions = data?.pages.flatMap((page) => page.transactions) || [];
@@ -70,6 +91,25 @@ export function Transactions() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 rounded-xl bg-background/50"
             />
+          </div>
+          <div className="flex gap-4 mt-4">
+            <Input
+              placeholder="Filter by merchant..."
+              value={merchant}
+              onChange={(e) => setMerchant(e.target.value)}
+              className="rounded-xl bg-background/50"
+            />
+            <Select onValueChange={setCategory} value={category}>
+              <SelectTrigger className="rounded-xl bg-background/50">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Categories</SelectItem>
+                {categories?.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>

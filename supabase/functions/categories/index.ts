@@ -15,9 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url)
-    const params = url.searchParams
-
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing authorization header')
@@ -33,46 +30,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    let query = supabase
-      .from('transactions')
+    const { data, error } = await supabase
+      .from('categories')
       .select('*')
       .eq('user_id', userId)
-
-    if (params.has('q')) {
-      query = query.textSearch('description', params.get('q'))
-    }
-    if (params.has('start')) {
-      query = query.gte('occurred_at', params.get('start'))
-    }
-    if (params.has('end')) {
-      query = query.lte('occurred_at', params.get('end'))
-    }
-    if (params.has('batchId')) {
-      query = query.eq('import_batch_id', params.get('batchId'))
-    }
-    if (params.has('category')) {
-      query = query.eq('category_id', params.get('category'))
-    }
-    if (params.has('merchant')) {
-      query = query.ilike('merchant', `%${params.get('merchant')}%`)
-    }
-
-    const limit = parseInt(params.get('limit') || '20')
-    const cursor = parseInt(params.get('cursor') || '0')
-    query = query.range(cursor, cursor + limit - 1)
-    query = query.order('occurred_at', { ascending: false })
-    query = query.order('created_at', { ascending: false })
-
-    const { data, error } = await query
 
     if (error) {
       throw error
     }
 
-    return new Response(JSON.stringify({
-      transactions: data,
-      nextCursor: data.length === limit ? cursor + limit : null,
-    }), {
+    return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
