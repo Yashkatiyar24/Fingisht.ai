@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,48 @@ import { Search, Loader2, Edit } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EditTransactionModal } from "@/components/EditTransactionModal";
 
 export function Transactions() {
   const [search, setSearch] = useState("");
+  const [editingTransaction, setEditingTransaction] = useState(null);
   const [merchant, setMerchant] = useState("");
   const [category, setCategory] = useState("");
   const [searchParams] = useSearchParams();
   const batchId = searchParams.get("batchId");
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { mutate: updateTransaction } = useMutation({
+    mutationFn: async ({ transactionId, categoryId }) => {
+      const token = await getToken({ template: 'supabase' });
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/update-transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ transactionId, categoryId }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update transaction');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['transactions']);
+      setEditingTransaction(null);
+    },
+  });
+
+  const handleSaveTransaction = (categoryId) => {
+    if (editingTransaction) {
+      updateTransaction({
+        transactionId: editingTransaction.id,
+        categoryId,
+      });
+    }
+  };
 
   const fetchTransactions = async ({ pageParam = 0 }) => {
     const token = await getToken({ template: 'supabase' });
@@ -151,7 +185,7 @@ export function Transactions() {
                         <TableCell className="capitalize">{transaction.type}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(transaction.amount)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTransaction(transaction)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -172,6 +206,14 @@ export function Transactions() {
           )}
         </CardContent>
       </Card>
+
+      <EditTransactionModal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        categories={categories}
+        onSave={handleSaveTransaction}
+      />
     </div>
   );
 }
