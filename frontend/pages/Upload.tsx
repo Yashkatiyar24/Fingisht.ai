@@ -108,7 +108,7 @@ export default function Upload() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-4xl font-bold mb-2">Upload Transactions</h1>
-      <p className="text-muted-foreground mb-8">Select a CSV or XLSX file to import.</p>
+      <p className="text-muted-foreground mb-8">Select a CSV, XLSX, or PDF file to import.</p>
 
       <Card
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
@@ -146,7 +146,7 @@ export default function Upload() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".csv,.xls,.xlsx"
+        accept=".csv,.xls,.xlsx,.pdf"
         onChange={handleFileInput}
         className="hidden"
       />
