@@ -40,39 +40,21 @@ export function Budgets() {
 
   const { data: budgets, isLoading } = useQuery({
     queryKey: ["budgets"],
-    queryFn: async () => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/budgets`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch budgets");
-      return response.json();
-    },
+    queryFn: () => backend.budget.list(),
   });
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch categories");
-      return response.json();
-    },
+    queryFn: () => backend.category.list(),
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/budgets`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to create budget");
-      return response.json();
-    },
+    mutationFn: (data: {
+      categoryId: number;
+      amount: number;
+      periodStart: Date;
+      periodEnd: Date;
+    }) => backend.budget.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       setIsCreateDialogOpen(false);
@@ -94,16 +76,12 @@ export function Budgets() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data) => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/budgets`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to update budget");
-      return response.json();
-    },
+    mutationFn: (data: {
+      id: number;
+      amount: number;
+      periodStart: Date;
+      periodEnd: Date;
+    }) => backend.budget.update(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       setIsEditDialogOpen(false);
@@ -123,15 +101,7 @@ export function Budgets() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const token = await getToken({ template: 'supabase' });
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/budgets`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id }),
-      });
-      if (!response.ok) throw new Error("Failed to delete budget");
-    },
+    mutationFn: (id: number) => backend.budget.del({ id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       toast({
@@ -151,10 +121,15 @@ export function Budgets() {
 
   const handleCreate = () => {
     if (selectedCategoryId && amount) {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
       createMutation.mutate({
-        category_id: selectedCategoryId,
+        categoryId: parseInt(selectedCategoryId),
         amount: parseFloat(amount),
-        period: "monthly",
+        periodStart: startOfMonth,
+        periodEnd: endOfMonth,
       });
     }
   };
