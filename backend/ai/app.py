@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-from backend.ai.model_utils import CategoryModel, preprocess_text
+from model_utils import CategoryModel, preprocess_text
 
 app = FastAPI()
 model = None

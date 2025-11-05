@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
+import backend from "~backend/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,24 +17,22 @@ export function Transactions() {
   const [searchParams] = useSearchParams();
   const batchId = searchParams.get("batchId");
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  const categorizeMutation = useMutation({
+    mutationFn: () => backend.transactions.categorize({}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
 
   const fetchTransactions = async ({ pageParam = 0 }) => {
-    const token = await getToken({ template: 'supabase' });
-    const url = new URL(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/transactions`);
-    url.searchParams.set('cursor', pageParam.toString());
-    url.searchParams.set('limit', '20');
-    if (search) url.searchParams.set('q', search);
-    if (batchId) url.searchParams.set('batchId', batchId);
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    return backend.transactions.list({
+      cursor: pageParam,
+      limit: 20,
+      q: search,
+      batchId: batchId,
     });
-    if (!response.ok) {
-      throw new Error('Failed to fetch transactions');
-    }
-    return response.json();
   };
 
   const {
@@ -62,14 +61,19 @@ export function Transactions() {
       <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
         <CardHeader>
           <CardTitle>All Transactions</CardTitle>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by merchant or description..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 rounded-xl bg-background/50"
-            />
+          <div className="flex gap-4 mt-4">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by merchant or description..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 rounded-xl bg-background/50"
+              />
+            </div>
+            <Button onClick={() => categorizeMutation.mutate()} disabled={categorizeMutation.isLoading}>
+              {categorizeMutation.isLoading ? 'Categorizing...' : 'Categorize Transactions'}
+            </Button>
           </div>
         </CardHeader>
         <CardContent>

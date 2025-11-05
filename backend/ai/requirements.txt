@@ -1,4 +1,4 @@
-fastapi==0.98.0
+fastapi==0.110.0
 uvicorn[standard]==0.23.2
 # Use scikit-learn 1.3.x and numpy 1.26.x for broad wheel availability on macOS
 scikit-learn==1.3.2

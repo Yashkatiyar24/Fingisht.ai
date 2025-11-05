@@ -36,6 +36,22 @@ export function Dashboard() {
     queryFn: fetchDashboardData,
   });
 
+  const { data: forecastData } = useQuery({
+    queryKey: ["forecast"],
+    queryFn: async () => {
+      const token = await getToken({ template: 'supabase' });
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/forecast`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch forecast data');
+      }
+      return response.json();
+    },
+  });
+
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -69,7 +85,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -86,6 +102,15 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totals.expenses)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Forecasted Spending</CardTitle>
+            <TrendingDown className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(forecastData?.forecastedSpending || 0)}</div>
           </CardContent>
         </Card>
         <Card>

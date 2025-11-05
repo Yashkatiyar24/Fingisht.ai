@@ -20,3 +20,4 @@ dist
 
 # Replit agent state
 .local/state/
+\n# Python cache\n__pycache__/
