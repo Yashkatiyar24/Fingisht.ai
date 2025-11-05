@@ -123,7 +123,7 @@ export function Budgets() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const token = await getToken({ template: 'supabase' });
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/budgets`, {
         method: "DELETE",
